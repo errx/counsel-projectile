@@ -85,6 +85,24 @@ With a prefix ARG invalidates the cache first."
           (find-file-other-window (projectile-expand-root x)))
     "other window")))
 
+;;; counsel-projectile-ag
+
+;;;###autoload
+(defun counsel-projectile-ag (&optional initial-input)
+  (interactive) ;; TODO interactive read initial input
+  ;; copied from projectile-ag
+  (let ((ag-ignore-list (unless (eq (projectile-project-vcs) 'git)
+                         ;; ag supports git ignore files
+                         (format "%s" (ag/format-ignore (-union ag-ignore-list
+                                 (append
+                                  (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
+                                  (projectile--globally-ignored-file-suffixes-glob)
+                                  grep-find-ignored-files grep-find-ignored-directories))))))
+    (ag-prefix (projectile-prepend-project-name (car (split-string counsel-ag-base-command)))))
+
+    (counsel-ag (or initial-input (projectile-symbol-or-selection-at-point)) (projectile-project-root) ag-ignore-list ag-prefix)))
+
+
 ;;; counsel-projectile-find-dir
 
 ;;;###autoload
@@ -286,6 +304,7 @@ With a prefix ARG invalidates the cache first."
       (progn
         (when (eq projectile-switch-project-action #'projectile-find-file)
           (setq projectile-switch-project-action #'counsel-projectile-find-file-or-buffer))
+        (define-key projectile-command-map (kbd "s s") #'counsel-projectile-ag)
         (define-key projectile-command-map (kbd "f") #'counsel-projectile-find-file)
         (define-key projectile-command-map (kbd "d") #'counsel-projectile-find-dir)
         (define-key projectile-command-map (kbd "p") #'counsel-projectile-switch-project)
@@ -294,6 +313,7 @@ With a prefix ARG invalidates the cache first."
     (progn
       (when (eq projectile-switch-project-action #'counsel-projectile-find-file-or-buffer)
         (setq projectile-switch-project-action #'projectile-find-file))
+      (define-key projectile-command-map (kbd "s s") #'projectile-ag)
       (define-key projectile-command-map (kbd "f") #'projectile-find-file)
       (define-key projectile-command-map (kbd "d") #'projectile-find-dir)
       (define-key projectile-command-map (kbd "p") #'projectile-switch-project)
