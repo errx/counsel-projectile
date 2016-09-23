@@ -88,20 +88,30 @@ With a prefix ARG invalidates the cache first."
 ;;; counsel-projectile-ag
 
 ;;;###autoload
-(defun counsel-projectile-ag (&optional initial-input)
-  (interactive) ;; TODO interactive read initial input
-  ;; copied from projectile-ag
-  (let ((ag-ignore-list (unless (eq (projectile-project-vcs) 'git)
-                         ;; ag supports git ignore files
-                         (format "%s" (ag/format-ignore (-union ag-ignore-list
-                                 (append
-                                  (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
-                                  (projectile--globally-ignored-file-suffixes-glob)
-                                  grep-find-ignored-files grep-find-ignored-directories))))))
-    (ag-prefix (projectile-prepend-project-name (car (split-string counsel-ag-base-command)))))
+(defun counsel-projectile-ag (search-term &optional arg)
+  "Run an ag search with SEARCH-TERM in the project.
 
-    (counsel-ag (or initial-input (projectile-symbol-or-selection-at-point)) (projectile-project-root) ag-ignore-list ag-prefix)))
+With an optional prefix argument ARG SEARCH-TERM is interpreted as a
+regular expression."
 
+  ;; TODO 1) interactive 2) ag-ignore 3) arg (regexp)
+  (interactive (list nil))
+
+  ;; (ivy-set-prompt 'counsel-ag counsel-prompt-function)
+  (setq counsel--git-grep-dir (projectile-project-root))
+  (let ((ag-prompt (projectile-prepend-project-name (car (split-string counsel-ag-base-command)))))
+  (ivy-read ag-prompt
+            (lambda (string)
+              (counsel-ag-function string nil))
+            :initial-input (or search-term (projectile-symbol-or-selection-at-point))
+            :dynamic-collection t
+            :keymap counsel-ag-map
+            :history 'counsel-git-grep-history
+            :action #'counsel-git-grep-action
+            :unwind (lambda ()
+                      (counsel-delete-process)
+                      (swiper--cleanup))
+            :caller 'counsel-ag)))
 
 ;;; counsel-projectile-find-dir
 
